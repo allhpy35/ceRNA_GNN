@@ -79,9 +79,19 @@ def get_param(shape):
 	return param
 
 def com_mult(a, b):
-	r1, i1 = a[..., 0], a[..., 1]
-	r2, i2 = b[..., 0], b[..., 1]
-	return torch.stack([r1 * r2 - i1 * i2, r1 * i2 + i1 * r2], dim = -1)
+	r1, i1 = a.real, a.imag  # a 텐서의 실수부, 허수부
+	r2, i2 = b.real, b.imag  # b 텐서의 실수부, 허수부
+
+	# 복소수 곱셈 공식: (r1 + i1*j) * (r2 + i2*j) = (r1*r2 - i1*i2) + (r1*i2 + i1*r2)*j
+	real_part = r1 * r2 - i1 * i2
+	imag_part = r1 * i2 + i1 * r2
+
+	# 실수부와 허수부를 합쳐 복소수 텐서로 반환
+	return torch.complex(real_part, imag_part)
+
+	# r1, i1 = a[..., 0], a[..., 1]
+	# r2, i2 = b[..., 0], b[..., 1]
+	# return torch.stack([r1 * r2 - i1 * i2, r1 * i2 + i1 * r2], dim = -1)
 
 def conj(a):
 	#a[..., 1] = -a[..., 1]
@@ -90,12 +100,17 @@ def conj(a):
 
 	# 허수 부분의 부호를 반대로 바꾸어 켤레 복소수 생성
 	conj_a = torch.complex(real_part, -imag_part)
-	return conj_a
+	return torch.conj(a)
 
 def cconv(a, b):
 	print(torch.__version__)
-	return torch.fft.irfft(com_mult(torch.fft.rfft(a, 1), torch.fft.rfft(b, 1)), 1, signal_sizes=(a.shape[-1],))
+	#return torch.fft.irfft(com_mult(torch.fft.rfft(a, 1), torch.fft.rfft(b, 1)), 1, signal_sizes=(a.shape[-1],))
+	return torch.fft.irfft(com_mult(torch.fft.rfft(a, 1), torch.fft.rfft(b, 1)), n=a.shape[-1], dim=1)
+
+	#return torch.fft.irfft(com_mult(torch.fft.rfft(a, 1), torch.fft.rfft(b, 1)), n=a.shape[-1])
 
 def ccorr(a, b):
-	print(torch.__version__)
-	return torch.fft.irfft(com_mult(conj(torch.fft.rfft(a, 1)), torch.fft.rfft(b, 1)), 1, signal_sizes=(a.shape[-1],))
+	#return torch.fft.irfft(com_mult(conj(torch.fft.rfft(a, 1)), torch.fft.rfft(b, 1)), 1, signal_sizes=(a.shape[-1],))
+	return torch.fft.irfft(com_mult(conj(torch.fft.rfft(a, 1)), torch.fft.rfft(b, 1)), n=a.shape[-1], dim=1)
+
+	#return torch.fft.irfft(com_mult(conj(torch.fft.rfft(a, 1)), torch.fft.rfft(b, 1)),n=a.shape[-1])
